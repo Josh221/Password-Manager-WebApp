@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #fdfbfb;
+        }
+        .form-container {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .password-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        #password {
+            width: 90%; /* Make the password input take most of the width */
+        }
+        .toggle-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 5px;
+            margin-left: 10px; /* Space between the input and button */
+        }
+        .toggle-btn:hover {
+            background-color: #0056b3;
+        }
+        .generate-btn {
+            background-color: #ff5733;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+        .generate-btn:hover {
+            background-color: #cc4526;
+        }
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .flash-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .flash-message.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .flash-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            margin: 0;
+        }
+        header div p {
+            margin: 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Password Manager</h1>
+        <div>
+            {% if username %}
+                <p>Welcome, <strong>{{ username }}</strong></p>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div>
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Add password form -->
+    <div class="form-container">
+        <h2>Add Password</h2>
+        <form action="/add" method="POST">
+            {{ add_password_form.hidden_tag() }}  <!-- CSRF token -->
+            <label for="website">Website:</label>
+            {{ add_password_form.website(class="input") }}
+            <br>
+            <label for="email">Email/Username:</label>
+            {{ add_password_form.email(class="input") }}
+            <br>
+            <label for="password">Password:</label>
+            <div class="password-container">
+                {{ add_password_form.password(class="input", id="password") }}
+                <button type="button" class="toggle-btn" onclick="togglePassword()">Show</button>
+                <button type="button" class="generate-btn" onclick="generatePassword()">Generate</button>
+            </div>
+            <br>
+            <button type="submit">Save</button>
+        </form>
+    </div>
+
+    <!-- Search password form -->
+    <div class="form-container">
+        <h2>Search Password</h2>
+        <form action="/search" method="POST">
+            {{ search_password_form.hidden_tag() }}  <!-- CSRF token -->
+            <label for="search-website">Website:</label>
+            {{ search_password_form.website(class="input", id="search-website") }}
+            <br>
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    {% if website %}
+        <div class="form-container">
+            <h3>Search Results</h3>
+            <p><strong>Website:</strong> {{ website }}</p>
+            <p><strong>Email/Username:</strong> {{ email }}</p>
+            <p><strong>Password:</strong> {{ password }}</p>
+        </div>
+    {% endif %}
+
+    <!-- Logout Button, visible only when the user is logged in -->
+    {% if 'user_id' in session %}
+    <form action="{{ url_for('logout') }}" method="POST">
+        {{ form.hidden_tag() }}  <!-- CSRF Token -->
+        <button type="submit" class="logout-btn">Logout</button>
+    </form>
+    {% endif %}
+
+    <script>
+        // Function to toggle password visibility
+        function togglePassword() {
+            var passwordInput = document.getElementById('password');
+            var button = document.querySelector('.toggle-btn');
+
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                button.textContent = "Hide";
+            } else {
+                passwordInput.type = "password";
+                button.textContent = "Show";
+            }
+        }
+
+        // Function to generate a random password
+        function generatePassword() {
+            var length = 12; // Set the length of the password
+            var charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+[]{}|;:,.<>?";
+            var password = "";
+            for (var i = 0; i < length; i++) {
+                var randomIndex = Math.floor(Math.random() * charset.length);
+                password += charset[randomIndex];
+            }
+            document.getElementById('password').value = password;
+        }
+    </script>
+</body>
+</html>
